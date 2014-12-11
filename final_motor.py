@@ -15,6 +15,7 @@ spk_data = [(data['spk_channels'][i], data['spk_times'][i])
              for i in range(num_spikes)]
 
 def spikes_between(start, end, norm=True):
+    """Returns the number of spikes in each channel that are in the given range"""
     in_range = []
     for channel, times in spk_data:
         spikes = times[(times >= start) & (times <= end)]
@@ -26,3 +27,11 @@ trial_data['spks_in_move'] = trial_data.apply(
     lambda r: spikes_between(r.move, r.acq), axis=1)
 trial_data['spks_total'] = trial_data.apply(
     lambda r: spikes_between(r.move, r.acq), axis=1)
+
+def split(data, prob=0.75):
+    """Splits the data into a training and testing sets where the probability a
+    given row will go in the training set given by prob"""
+    data['training'] = [random.random() < prob for r in range(len(data))]
+    return data[data.training], data[(data.training == False)]
+
+train, test = split(trial_data)
