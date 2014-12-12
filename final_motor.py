@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pylab as plt
 import pandas as pd
-import random
+from sklearn import neighbors
+from sklearn.cross_validation import train_test_split
 
 data = np.load('motor_dataset.npy')[()]
 trial_data = pd.DataFrame({'angle': data['trial_angle'],
@@ -25,11 +26,16 @@ trial_data['spks_in_move'] = trial_data.apply(
 trial_data['spks_total'] = trial_data.apply(
     lambda r: spikes_between(r.move, r.acq), axis=1)
 
-def split(data, prob=0.75):
-    """Splits the data into a training and testing sets where the probability a
-    given row will go in the training set given by prob"""
-    data['training'] = [random.random() < prob for r in range(len(data))]
-    return data[data.training], data[(data.training == False)]
+angles = trial_data.angle.tolist()
+spks = trial_data.spks_in_move.tolist()
 
-train, test = split(trial_data)
+scores = []
+for i in range(20):
+    angles_train, angles_test, spks_train, spks_test = train_test_split(angles, spks)
 
+    clf = neighbors.KNeighborsClassifier(n_neighbors=10)
+    clf.fit(spks_train, angles_train)
+
+    scores.append(clf.score(spks_test, angles_test))
+
+print(sum(scores)/len(scores))
