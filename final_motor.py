@@ -25,6 +25,8 @@ trial_data['spks_in_move'] = trial_data.apply(
     lambda r: spikes_between(r.move, r.acq), axis=1)
 trial_data['spks_total'] = trial_data.apply(
     lambda r: spikes_between(r.move, r.acq), axis=1)
+trial_data['avg_spk_rate'] = trial_data.apply(
+    lambda r: sum(r.spks_in_move)/len(r.spks_in_move), axis=1)
 
 angles = trial_data.angle.tolist()
 spks_in_move = trial_data.spks_in_move.tolist()
@@ -45,8 +47,7 @@ def score(classifier, test_spks, test_angles):
             totals[i] -= 1.
     return [t/len(test_spks) for t in totals]
 
-
-def test_predictor(k=10, n=100, weights='distance', spks=spks_in_move):
+def test_predictor(k=12, n=100, weights='distance', spks=spks_in_move):
     """Runs the predictor multiple times and returns how often it gets results
     correct with an increasing level of precision.
     The first number is for perfect results, second for within 45 degrees,
@@ -62,3 +63,25 @@ def test_predictor(k=10, n=100, weights='distance', spks=spks_in_move):
         scores.append(score(clf, spks_test, angles_test))
 
     return [sum(map(lambda x: x[i], scores))/len(scores) for i in range(5)]
+    
+def plot_speed_spks(data, angle=None, title=None, ploton=plt):
+    relevant = data[data.angle == angle] if angle != None else data
+    xs = relevant.time_from_move
+    ys = relevant.avg_spk_rate
+    polynomial = np.polyfit(xs, ys, 1)
+    fit = np.poly1d(polynomial)
+    ploton.plot(xs, ys, 'o', [0,.5], fit([0,.5]), 'b-')
+    if ploton != plt:
+        ploton.set_title(title)
+        ploton.set_xlim([min(xs), max(xs)])
+        ploton.set_xlabel("Time in seconds moving")
+        ploton.set_ylabel("Average Spike rate")
+    
+def graph_speed_plots(data):
+    f, axis = plt.subplots(2,4)
+    for i in range(8):
+        angle = i * 45
+        plot_speed_spks(data, angle=angle, 
+                        title = "Trials with direction %i degrees"%angle,
+                        ploton = axis[i%2][i/2])
+    f.show()
