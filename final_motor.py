@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pylab as plt
 import pandas as pd
+import random
 
 data = np.load('motor_dataset.npy')[()]
 trial_data = pd.DataFrame({'angle': data['trial_angle'],
