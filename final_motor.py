@@ -27,15 +27,38 @@ trial_data['spks_total'] = trial_data.apply(
     lambda r: spikes_between(r.move, r.acq), axis=1)
 
 angles = trial_data.angle.tolist()
-spks = trial_data.spks_in_move.tolist()
+spks_in_move = trial_data.spks_in_move.tolist()
+spks_total = trial_data.spks_in_move.tolist()
 
-scores = []
-for i in range(20):
-    angles_train, angles_test, spks_train, spks_test = train_test_split(angles, spks)
+def score(classifier, test_spks, test_angles):
+    """returns a 4 percentages.  The first is the percent exactly right
+    The second is the percent no more than 45 degrees off, the third no more
+    than 90 degrees off, and the last no more than 135 degrees off.
+    """
+    n = len(test_spks)
+    totals = [n, n, n, n, n]
+    for result, actual in zip(classifier.predict(test_spks), test_angles):
+        dst = abs(result - actual)
+        if dst > 180:
+            dst = 360 - dst
+        for i in range(dst/45):
+            totals[i] -= 1.
+    return [t/len(test_spks) for t in totals]
 
-    clf = neighbors.KNeighborsClassifier(n_neighbors=10)
-    clf.fit(spks_train, angles_train)
 
-    scores.append(clf.score(spks_test, angles_test))
+def test_predictor(k=10, n=100, weights='distance', spks=spks_in_move):
+    """Runs the predictor multiple times and returns how often it gets results
+    correct with an increasing level of precision.
+    The first number is for perfect results, second for within 45 degrees,
+    thrid for within 90 degrees, etc.
+    """
+    scores = []
+    for i in range(n):
+        angles_train, angles_test, spks_train, spks_test = train_test_split(angles, spks)
 
-print(sum(scores)/len(scores))
+        clf = neighbors.KNeighborsClassifier(n_neighbors=k, weights=weights)
+        clf.fit(spks_train, angles_train)
+
+        scores.append(score(clf, spks_test, angles_test))
+
+    return [sum(map(lambda x: x[i], scores))/len(scores) for i in range(5)]
