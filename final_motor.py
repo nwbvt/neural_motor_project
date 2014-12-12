@@ -10,17 +10,13 @@ trial_data = pd.DataFrame({'angle': data['trial_angle'],
 trial_data['time_from_go'] = trial_data.acq - trial_data.go
 trial_data['time_from_move'] = trial_data.acq - trial_data.move
 
-num_spikes = len(data['spk_channels'])
-spk_data = [(data['spk_channels'][i], data['spk_times'][i])
-             for i in range(num_spikes)]
-
 def spikes_between(start, end, norm=True):
     """Returns the number of spikes in each channel that are in the given range"""
     in_range = []
-    for channel, times in spk_data:
+    for times in data['spk_times']:
         spikes = times[(times >= start) & (times <= end)]
         res = len(spikes)/((end-start) if norm else 1)
-        in_range.append((channel, res))
+        in_range.append(res)
     return in_range
     
 trial_data['spks_in_move'] = trial_data.apply(
@@ -35,3 +31,4 @@ def split(data, prob=0.75):
     return data[data.training], data[(data.training == False)]
 
 train, test = split(trial_data)
+
